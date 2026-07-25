@@ -68,6 +68,7 @@ class CustomisationViewModel @Inject constructor(
                             dimWallpaperPercentage = prefs.dimWallpaperPercentage.toFloat(),
                             autoOpenApp = prefs.autoOpenApp,
                             notificationDot = prefs.notificationDot,
+                            notificationPanel = prefs.notificationPanel,
                             homeAppVerticalPadding = prefs.homeAppVerticalPadding.toFloat(),
                             ignoreSpecialCharacters = prefs.ignoreSpecialCharacters,
                             hideAppDrawerSearch = prefs.hideAppDrawerSearch,
@@ -361,6 +362,13 @@ class CustomisationViewModel @Inject constructor(
     fun onNotificationPermissionNotGrantedOnStarted() {
         viewModelScope.launch {
             preferenceHelper.setNotificationDot(false)
+            preferenceHelper.setNotificationPanel(false)
+        }
+    }
+
+    fun onToggleNotificationPanel() {
+        viewModelScope.launch {
+            preferenceHelper.setNotificationPanel(_state.value.notificationPanel.not())
         }
     }
 

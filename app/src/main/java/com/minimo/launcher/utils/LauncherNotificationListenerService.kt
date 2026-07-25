@@ -1,5 +1,6 @@
 package com.minimo.launcher.utils
 
+import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,24 +21,27 @@ class LauncherNotificationListenerService : NotificationListenerService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // Cache to keep track of active notifications without making repeated IPC calls.
-    // Maps (PackageName, UserHandle) -> Set of Notification Keys
-    private val activeNotificationsCache = mutableMapOf<Pair<String, Int>, MutableSet<String>>()
+    // Maps notification key -> notification data
+    private val activeNotificationsCache = mutableMapOf<String, ActiveNotification>()
 
     override fun onListenerConnected() {
         super.onListenerConnected()
         Timber.d("onListenerConnected")
+        instance = this
         syncNotifications()
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         Timber.d("onListenerDisconnected")
+        instance = null
         activeNotificationsCache.clear()
-        notificationDotsNotifier.updateNotificationDots(emptyList())
+        notificationDotsNotifier.updateActiveNotifications(emptyList())
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         serviceScope.cancel()
     }
 
@@ -45,56 +49,23 @@ class LauncherNotificationListenerService : NotificationListenerService() {
         super.onNotificationPosted(sbn)
         if (sbn == null) return
 
-        val packageName = sbn.packageName ?: return
-        val userHandle = sbn.user.hashCode()
-        val key = sbn.key
-        val cacheKey = Pair(packageName, userHandle)
-
         val isValid = sbn.isClearable && !sbn.isOngoing
-        var changed = false
 
         if (isValid) {
-            val keys = activeNotificationsCache[cacheKey]
-            if (keys == null) {
-                activeNotificationsCache[cacheKey] = mutableSetOf(key)
-                changed = true
-            } else {
-                keys.add(key)
-            }
+            activeNotificationsCache[sbn.key] = sbn.toActiveNotification()
         } else {
-            val keys = activeNotificationsCache[cacheKey]
-            if (keys != null && keys.remove(key)) {
-                if (keys.isEmpty()) {
-                    activeNotificationsCache.remove(cacheKey)
-                    changed = true
-                }
-            }
+            activeNotificationsCache.remove(sbn.key)
         }
 
-        if (changed) {
-            notificationDotsNotifier.updateNotificationDots(
-                activeNotificationsCache.keys.map { (pkg, user) -> NotificationDot(pkg, user) }
-            )
-        }
+        notificationDotsNotifier.updateActiveNotifications(activeNotificationsCache.values.toList())
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         super.onNotificationRemoved(sbn)
         if (sbn == null) return
 
-        val packageName = sbn.packageName ?: return
-        val userHandle = sbn.user.hashCode()
-        val key = sbn.key
-        val cacheKey = Pair(packageName, userHandle)
-
-        val keys = activeNotificationsCache[cacheKey]
-        if (keys != null && keys.remove(key)) {
-            if (keys.isEmpty()) {
-                activeNotificationsCache.remove(cacheKey)
-                notificationDotsNotifier.updateNotificationDots(
-                    activeNotificationsCache.keys.map { (pkg, user) -> NotificationDot(pkg, user) }
-                )
-            }
+        if (activeNotificationsCache.remove(sbn.key) != null) {
+            notificationDotsNotifier.updateActiveNotifications(activeNotificationsCache.values.toList())
         }
     }
 
@@ -112,26 +83,54 @@ class LauncherNotificationListenerService : NotificationListenerService() {
                 activeNotificationsCache.clear()
 
                 for (notification in notifications) {
-                    val packageName = notification.packageName ?: continue
-                    val userHandle = notification.user.hashCode()
                     if (notification.isClearable && !notification.isOngoing) {
-                        val cacheKey = Pair(packageName, userHandle)
-                        val keys = activeNotificationsCache[cacheKey]
-                        if (keys == null) {
-                            activeNotificationsCache[cacheKey] = mutableSetOf(notification.key)
-                        } else {
-                            keys.add(notification.key)
-                        }
+                        activeNotificationsCache[notification.key] = notification.toActiveNotification()
                     }
                 }
 
-                notificationDotsNotifier.updateNotificationDots(
-                    activeNotificationsCache.keys.map { (pkg, user) -> NotificationDot(pkg, user) }
-                )
+                notificationDotsNotifier.updateActiveNotifications(activeNotificationsCache.values.toList())
             } catch (exception: Exception) {
                 Timber.e(exception)
                 activeNotificationsCache.clear()
-                notificationDotsNotifier.updateNotificationDots(emptyList())
+                notificationDotsNotifier.updateActiveNotifications(emptyList())
+            }
+        }
+    }
+
+    private fun StatusBarNotification.toActiveNotification(): ActiveNotification {
+        val extras = notification.extras
+        val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+        val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+        val isAutoCancel = (notification.flags and Notification.FLAG_AUTO_CANCEL) != 0
+
+        return ActiveNotification(
+            key = key,
+            packageName = packageName,
+            userHandle = user.hashCode(),
+            postTime = postTime,
+            title = title,
+            text = text,
+            isAutoCancel = isAutoCancel,
+            contentIntent = notification.contentIntent
+        )
+    }
+
+    companion object {
+        private var instance: LauncherNotificationListenerService? = null
+
+        fun dismissNotification(key: String) {
+            try {
+                instance?.cancelNotification(key)
+            } catch (exception: Exception) {
+                Timber.e(exception)
+            }
+        }
+
+        fun dismissAllNotifications() {
+            try {
+                instance?.cancelAllNotifications()
+            } catch (exception: Exception) {
+                Timber.e(exception)
             }
         }
     }

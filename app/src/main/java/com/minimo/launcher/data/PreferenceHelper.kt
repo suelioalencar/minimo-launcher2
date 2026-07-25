@@ -73,6 +73,7 @@ class PreferenceHelper @Inject constructor(
         private val KEY_BLACK_THEME = booleanPreferencesKey("KEY_BLACK_THEME")
         private val KEY_AUTO_OPEN_APP = booleanPreferencesKey("KEY_AUTO_OPEN_APP")
         private val KEY_NOTIFICATION_DOT = booleanPreferencesKey("KEY_NOTIFICATION_DOT")
+        private val KEY_NOTIFICATION_PANEL = booleanPreferencesKey("KEY_NOTIFICATION_PANEL")
         private val KEY_HOME_APP_VERTICAL_PADDING =
             intPreferencesKey("KEY_HOME_APP_VERTICAL_PADDING")
         private val KEY_IGNORE_SPECIAL_CHARACTERS_IN_SEARCH =
@@ -304,6 +305,16 @@ class PreferenceHelper @Inject constructor(
         return preferences.data.map { it[KEY_NOTIFICATION_DOT] ?: false }
     }
 
+    suspend fun setNotificationPanel(enable: Boolean) {
+        preferences.edit {
+            it[KEY_NOTIFICATION_PANEL] = enable
+        }
+    }
+
+    fun getNotificationPanel(): Flow<Boolean> {
+        return preferences.data.map { it[KEY_NOTIFICATION_PANEL] ?: false }
+    }
+
     suspend fun setHomeAppVerticalPadding(padding: Int) {
         preferences.edit {
             it[KEY_HOME_APP_VERTICAL_PADDING] = padding
@@ -464,7 +475,8 @@ class PreferenceHelper @Inject constructor(
                 keyboardOpenDelay = prefs[KEY_KEYBOARD_OPEN_DELAY]
                     ?: Constants.DEFAULT_KEYBOARD_OPEN_DELAY,
                 enableFastScroller = prefs[KEY_ENABLE_FAST_SCROLLER] ?: false,
-                backOpensAppDrawer = prefs[KEY_BACK_OPENS_APP_DRAWER] ?: true
+                backOpensAppDrawer = prefs[KEY_BACK_OPENS_APP_DRAWER] ?: true,
+                notificationPanel = prefs[KEY_NOTIFICATION_PANEL] ?: false
             )
         }
     }
@@ -511,6 +523,7 @@ class PreferenceHelper @Inject constructor(
                     ?: Constants.DEFAULT_DIM_WALLPAPER_PERCENTAGE,
                 autoOpenApp = prefs[KEY_AUTO_OPEN_APP] ?: false,
                 notificationDot = prefs[KEY_NOTIFICATION_DOT] ?: false,
+                notificationPanel = prefs[KEY_NOTIFICATION_PANEL] ?: false,
                 homeAppVerticalPadding = prefs[KEY_HOME_APP_VERTICAL_PADDING] ?: Constants.DEFAULT_HOME_VERTICAL_PADDING,
                 ignoreSpecialCharacters = prefs[KEY_IGNORE_SPECIAL_CHARACTERS_IN_SEARCH] ?: "",
                 hideAppDrawerSearch = prefs[KEY_HIDE_APP_DRAWER_SEARCH] ?: false,

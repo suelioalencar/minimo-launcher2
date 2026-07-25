@@ -2,6 +2,7 @@ package com.minimo.launcher.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
+import com.minimo.launcher.ui.entities.ActiveNotificationUi
 import com.minimo.launcher.ui.entities.AppInfo
 import com.minimo.launcher.ui.entities.ShortcutInfo
 import com.minimo.launcher.utils.AppIconAlignment
@@ -55,5 +56,7 @@ data class HomeScreenState(
     val minimoSettingsPosition: MinimoSettingsPosition = MinimoSettingsPosition.Auto,
     val keyboardOpenDelay: Long = Constants.DEFAULT_KEYBOARD_OPEN_DELAY,
     val enableFastScroller: Boolean = false,
-    val backOpensAppDrawer: Boolean = true
+    val backOpensAppDrawer: Boolean = true,
+    val notificationPanel: Boolean = false,
+    val activeNotifications: List<ActiveNotificationUi> = emptyList()
 )

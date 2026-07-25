@@ -100,6 +100,8 @@ import com.minimo.launcher.utils.removeLockScreenPermission
 import com.minimo.launcher.utils.requestLockScreenPermission
 import kotlinx.coroutines.android.awaitFrame
 
+private enum class NotificationToggleTarget { Dot, Panel }
+
 @Composable
 fun CustomisationScreen(
     viewModel: CustomisationViewModel,
@@ -109,7 +111,7 @@ fun CustomisationScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     var showEnableAccessibilityDialog by remember { mutableStateOf(false) }
-    var showEnableNotificationPermissionDialog by remember { mutableStateOf(false) }
+    var pendingNotificationToggle by remember { mutableStateOf<NotificationToggleTarget?>(null) }
     var showEnableAppUsagePermissionDialog by remember { mutableStateOf(false) }
     var showSetWallpaperToThemeColorDialog by remember { mutableStateOf(false) }
 
@@ -646,7 +648,26 @@ fun CustomisationScreen(
                         if (context.isNotificationPermissionGranted()) {
                             viewModel.onToggleNotificationDot()
                         } else {
-                            showEnableNotificationPermissionDialog = true
+                            pendingNotificationToggle = NotificationToggleTarget.Dot
+                        }
+                    }
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            ToggleItem(
+                title = stringResource(R.string.notification_previews),
+                subtitle = stringResource(R.string.show_notification_previews_on_the_home_screen),
+                isChecked = state.notificationPanel,
+                onToggleClick = {
+                    if (state.notificationPanel) {
+                        viewModel.onToggleNotificationPanel()
+                    } else {
+                        if (context.isNotificationPermissionGranted()) {
+                            viewModel.onToggleNotificationPanel()
+                        } else {
+                            pendingNotificationToggle = NotificationToggleTarget.Panel
                         }
                     }
                 }
@@ -789,15 +810,23 @@ fun CustomisationScreen(
             )
         }
 
-        if (showEnableNotificationPermissionDialog) {
+        val notificationToggleTarget = pendingNotificationToggle
+        if (notificationToggleTarget != null) {
             EnableNotificationsDialog(
+                description = when (notificationToggleTarget) {
+                    NotificationToggleTarget.Dot -> stringResource(R.string.notification_access_required_description)
+                    NotificationToggleTarget.Panel -> stringResource(R.string.notification_panel_access_required_description)
+                },
                 onConfirm = {
                     context.openNotificationSettings()
-                    showEnableNotificationPermissionDialog = false
-                    viewModel.onToggleNotificationDot()
+                    pendingNotificationToggle = null
+                    when (notificationToggleTarget) {
+                        NotificationToggleTarget.Dot -> viewModel.onToggleNotificationDot()
+                        NotificationToggleTarget.Panel -> viewModel.onToggleNotificationPanel()
+                    }
                 },
                 onDismiss = {
-                    showEnableNotificationPermissionDialog = false
+                    pendingNotificationToggle = null
                 }
             )
         }

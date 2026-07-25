@@ -11,15 +11,14 @@ import com.minimo.launcher.R
 @Composable
 fun EnableNotificationsDialog(
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    description: String = stringResource(R.string.notification_access_required_description)
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.notification_access_required)) },
         text = {
-            Text(
-                stringResource(R.string.notification_access_required_description)
-            )
+            Text(description)
         },
         confirmButton = {
             Button(onClick = onConfirm) {

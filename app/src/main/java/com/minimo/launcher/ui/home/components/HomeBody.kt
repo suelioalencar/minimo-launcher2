@@ -36,6 +36,7 @@ import com.minimo.launcher.ui.theme.Dimens
 import com.minimo.launcher.utils.launchApp
 import com.minimo.launcher.utils.launchAppFromPreference
 import com.minimo.launcher.utils.launchAppInfo
+import com.minimo.launcher.utils.launchNotification
 import com.minimo.launcher.utils.openDefaultCalendarApp
 import com.minimo.launcher.utils.openDefaultClockApp
 import com.minimo.launcher.utils.openDigitalWellbeing
@@ -86,11 +87,32 @@ fun HomeBody(
         )
     }
 
+    val notificationIconSizePx = with(LocalDensity.current) { 22.dp.roundToPx() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .consumeWindowInsets(paddingValues)
     ) {
+        if (state.notificationPanel && state.activeNotifications.isNotEmpty()) {
+            NotificationsSection(
+                notifications = state.activeNotifications,
+                textColor = textColor,
+                loadIcon = { notification ->
+                    viewModel.loadNotificationIcon(notification, notificationIconSizePx)
+                },
+                onNotificationClick = { notification ->
+                    context.launchNotification(notification)
+                    if (notification.isAutoCancel) {
+                        viewModel.onDismissNotification(notification.key)
+                    }
+                },
+                onDismiss = { notification -> viewModel.onDismissNotification(notification.key) },
+                onClearAll = viewModel::onClearAllNotifications,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            )
+        }
+
         if (state.showHomeClock || state.showScreenTimeWidget) {
             Column(
                 modifier = Modifier.padding(

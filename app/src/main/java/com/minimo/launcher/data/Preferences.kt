@@ -61,7 +61,8 @@ data class HomePreferences(
     val swipeRightAppPreference: String = "",
     val keyboardOpenDelay: Long = Constants.DEFAULT_KEYBOARD_OPEN_DELAY,
     val enableFastScroller: Boolean = false,
-    val backOpensAppDrawer: Boolean = true
+    val backOpensAppDrawer: Boolean = true,
+    val notificationPanel: Boolean = false
 )
 
 data class CustomisationPreferences(
@@ -98,6 +99,7 @@ data class CustomisationPreferences(
     val dimWallpaperPercentage: Int = Constants.DEFAULT_DIM_WALLPAPER_PERCENTAGE,
     val autoOpenApp: Boolean = false,
     val notificationDot: Boolean = false,
+    val notificationPanel: Boolean = false,
     val homeAppVerticalPadding: Int = Constants.DEFAULT_HOME_VERTICAL_PADDING,
     val ignoreSpecialCharacters: String = "",
     val hideAppDrawerSearch: Boolean = false,

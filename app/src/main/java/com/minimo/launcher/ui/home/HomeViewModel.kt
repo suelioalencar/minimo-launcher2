@@ -12,6 +12,7 @@ import com.minimo.launcher.data.PreferenceHelper
 import com.minimo.launcher.data.ShortcutInfoDao
 import com.minimo.launcher.data.usecase.UpdateAllAppsUseCase
 import com.minimo.launcher.data.usecase.UpdateAllShortcutsUseCase
+import com.minimo.launcher.ui.entities.ActiveNotificationUi
 import com.minimo.launcher.ui.entities.AppInfo
 import com.minimo.launcher.utils.AppIconRepository
 import com.minimo.launcher.utils.AppUtils
@@ -19,6 +20,7 @@ import com.minimo.launcher.utils.Constants
 import com.minimo.launcher.utils.HomeAppsAlignmentHorizontal
 import com.minimo.launcher.utils.HomeAppsAlignmentVertical
 import com.minimo.launcher.utils.HomeClockAlignment
+import com.minimo.launcher.utils.LauncherNotificationListenerService
 import com.minimo.launcher.utils.MinimoSettingsPosition
 import com.minimo.launcher.utils.NotificationDotsNotifier
 import com.minimo.launcher.utils.ScreenTimeHelper
@@ -32,6 +34,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -148,6 +151,34 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            combine(
+                notificationDotsNotifier.activeNotifications,
+                appInfoDao.getAllAppsFlow()
+            ) { activeNotifications, appEntities ->
+                activeNotifications.mapNotNull { notification ->
+                    val app = appEntities.find {
+                        it.packageName == notification.packageName && it.userHandle == notification.userHandle
+                    } ?: return@mapNotNull null
+
+                    ActiveNotificationUi(
+                        key = notification.key,
+                        packageName = notification.packageName,
+                        className = app.className,
+                        userHandle = notification.userHandle,
+                        appName = app.alternateAppName.ifEmpty { app.appName },
+                        title = notification.title,
+                        text = notification.text,
+                        postTime = notification.postTime,
+                        isAutoCancel = notification.isAutoCancel,
+                        contentIntent = notification.contentIntent
+                    )
+                }
+            }.collect { activeNotifications ->
+                _state.update { it.copy(activeNotifications = activeNotifications) }
+            }
+        }
+
+        viewModelScope.launch {
             preferenceHelper.getHomePreferencesFlow()
                 .distinctUntilChanged()
                 .collect { prefs ->
@@ -259,6 +290,7 @@ class HomeViewModel @Inject constructor(
                             keyboardOpenDelay = prefs.keyboardOpenDelay,
                             enableFastScroller = prefs.enableFastScroller,
                             backOpensAppDrawer = prefs.backOpensAppDrawer,
+                            notificationPanel = prefs.notificationPanel,
                             allApps = newAllApps,
                             filteredAllApps = newFilteredApps,
                             searchText = clearSearchText
@@ -274,6 +306,22 @@ class HomeViewModel @Inject constructor(
         userHandle = app.userHandle,
         sizePx = sizePx
     )
+
+    suspend fun loadNotificationIcon(notification: ActiveNotificationUi, sizePx: Int) =
+        appIconRepository.loadIcon(
+            packageName = notification.packageName,
+            className = notification.className,
+            userHandle = notification.userHandle,
+            sizePx = sizePx
+        )
+
+    fun onDismissNotification(key: String) {
+        LauncherNotificationListenerService.dismissNotification(key)
+    }
+
+    fun onClearAllNotifications() {
+        LauncherNotificationListenerService.dismissAllNotifications()
+    }
 
     private fun getCombinedAllApps(
         dbApps: List<AppInfo>,

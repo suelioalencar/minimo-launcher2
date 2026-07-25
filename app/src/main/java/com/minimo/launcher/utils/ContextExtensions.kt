@@ -1,6 +1,7 @@
 package com.minimo.launcher.utils
 
 import android.app.AppOpsManager
+import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -19,6 +20,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import com.minimo.launcher.R
+import com.minimo.launcher.ui.entities.ActiveNotificationUi
 import com.minimo.launcher.ui.entities.AppInfo
 import timber.log.Timber
 
@@ -324,6 +326,19 @@ private fun Context.removeDeviceAdmin() {
     } catch (exception: Exception) {
         Timber.e(exception)
     }
+}
+
+fun Context.launchNotification(notification: ActiveNotificationUi) {
+    val contentIntent = notification.contentIntent
+    if (contentIntent != null) {
+        try {
+            contentIntent.send()
+            return
+        } catch (exception: PendingIntent.CanceledException) {
+            Timber.e(exception)
+        }
+    }
+    launchApp(notification.packageName, notification.className, notification.userHandle)
 }
 
 fun Context.showNotificationDrawer() {
