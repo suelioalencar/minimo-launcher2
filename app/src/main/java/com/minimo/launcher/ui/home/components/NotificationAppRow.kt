@@ -11,13 +11,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -88,6 +92,7 @@ fun NotificationAppRow(
                 textColor = textColor,
                 textSize = textSize,
                 verticalPadding = verticalPadding,
+                onOpen = onOpen,
                 onCollapse = onToggleExpand,
                 onMarkAsRead = onMarkAsRead,
                 onSnooze = onSnooze,
@@ -134,7 +139,7 @@ private fun CollapsedNotificationContent(
             Spacer(modifier = Modifier.width(12.dp))
         }
 
-        Column(modifier = Modifier.weight(1f, fill = false)) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "${notification.appName} · ${formatRelativeTime(notification.postTime)}",
                 color = textColor.copy(alpha = 0.6f),
@@ -142,14 +147,33 @@ private fun CollapsedNotificationContent(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = notificationPreview(notification),
-                color = textColor,
-                fontSize = textSize,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (notification.title.isNotBlank()) {
+                Text(
+                    text = notification.title,
+                    color = textColor,
+                    fontSize = textSize,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (notification.text.isNotBlank()) {
+                Text(
+                    text = notification.text,
+                    color = textColor.copy(alpha = 0.8f),
+                    fontSize = textSize.times(0.85f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = textColor.copy(alpha = 0.5f),
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 
@@ -160,6 +184,7 @@ private fun ExpandedNotificationContent(
     textColor: Color,
     textSize: TextUnit,
     verticalPadding: Dp,
+    onOpen: () -> Unit,
     onCollapse: () -> Unit,
     onMarkAsRead: () -> Unit,
     onSnooze: () -> Unit,
@@ -172,63 +197,79 @@ private fun ExpandedNotificationContent(
             .fillMaxWidth()
             .padding(horizontal = Dimens.APP_HORIZONTAL_SPACING, vertical = verticalPadding)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (icon != null) {
-                Image(
-                    bitmap = icon,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(NOTIFICATION_ICON_SIZE)
+        Column(modifier = Modifier.clickable(onClick = onOpen)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (icon != null) {
+                    Image(
+                        bitmap = icon,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(NOTIFICATION_ICON_SIZE)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+
+                Text(
+                    text = notification.appName,
+                    color = textColor,
+                    fontSize = textSize,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+
+                IconButton(onClick = onCollapse) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.collapse_notification),
+                        tint = textColor
+                    )
+                }
             }
 
-            Text(
-                text = notification.appName,
-                color = textColor,
-                fontSize = textSize,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-
-            IconButton(onClick = onCollapse) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.collapse_notification),
-                    tint = textColor
+            if (notification.title.isNotBlank()) {
+                Text(
+                    text = notification.title,
+                    color = textColor,
+                    fontSize = textSize.times(0.8f),
+                    fontWeight = FontWeight.Medium
                 )
             }
-        }
 
-        if (notification.title.isNotBlank()) {
-            Text(
-                text = notification.title,
-                color = textColor,
-                fontSize = textSize.times(0.8f),
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        if (notification.text.isNotBlank()) {
-            Text(
-                text = notification.text,
-                color = textColor.copy(alpha = 0.8f),
-                fontSize = textSize.times(0.75f)
-            )
+            if (notification.text.isNotBlank()) {
+                Text(
+                    text = notification.text,
+                    color = textColor.copy(alpha = 0.8f),
+                    fontSize = textSize.times(0.75f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onMarkAsRead) {
+            Button(
+                onClick = onMarkAsRead,
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    contentColor = textColor
+                )
+            ) {
                 Text(stringResource(R.string.mark_as_read))
             }
-            OutlinedButton(onClick = onSnooze) {
+            Button(
+                onClick = onSnooze,
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    contentColor = textColor
+                )
+            ) {
                 Text(stringResource(R.string.mute_notification))
             }
         }
@@ -259,16 +300,6 @@ private fun ExpandedNotificationContent(
                 }
             }
         }
-    }
-}
-
-private fun notificationPreview(notification: ActiveNotificationUi): String {
-    return when {
-        notification.title.isNotBlank() && notification.text.isNotBlank() ->
-            "${notification.title}: ${notification.text}"
-
-        notification.title.isNotBlank() -> notification.title
-        else -> notification.text
     }
 }
 

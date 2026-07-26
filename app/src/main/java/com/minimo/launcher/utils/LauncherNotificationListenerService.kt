@@ -3,6 +3,7 @@ package com.minimo.launcher.utils
 import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -100,9 +101,19 @@ class LauncherNotificationListenerService : NotificationListenerService() {
     private fun StatusBarNotification.toActiveNotification(): ActiveNotification {
         val extras = notification.extras
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
-        val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+
+        // Messaging apps (WhatsApp, SMS, etc.) post MessagingStyle notifications where the
+        // latest message body lives in the message list, not in EXTRA_TEXT (which is often a
+        // generic summary like "3 new messages" for grouped conversations).
+        val messagingStyle = NotificationCompat.MessagingStyle
+            .extractMessagingStyleFromNotification(notification)
+        val text = messagingStyle?.messages?.lastOrNull()?.text?.toString()
+            ?: extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+
         val isAutoCancel = (notification.flags and Notification.FLAG_AUTO_CANCEL) != 0
         val replyAction = notification.actions?.firstOrNull { action ->
+            action.semanticAction == Notification.Action.SEMANTIC_ACTION_REPLY
+        } ?: notification.actions?.firstOrNull { action ->
             action.remoteInputs?.any { it.allowFreeFormInput } == true
         }
 
