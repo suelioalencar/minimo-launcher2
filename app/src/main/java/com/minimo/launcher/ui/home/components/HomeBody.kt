@@ -13,8 +13,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -40,6 +42,7 @@ import com.minimo.launcher.utils.launchNotification
 import com.minimo.launcher.utils.openDefaultCalendarApp
 import com.minimo.launcher.utils.openDefaultClockApp
 import com.minimo.launcher.utils.openDigitalWellbeing
+import com.minimo.launcher.utils.sendNotificationReply
 import com.minimo.launcher.utils.startShortcut
 import com.minimo.launcher.utils.uninstallApp
 
@@ -89,30 +92,13 @@ fun HomeBody(
 
     val notificationIconSizePx = with(LocalDensity.current) { 22.dp.roundToPx() }
 
+    var expandedNotificationKey by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .consumeWindowInsets(paddingValues)
     ) {
-        if (state.notificationPanel && state.activeNotifications.isNotEmpty()) {
-            NotificationsSection(
-                notifications = state.activeNotifications,
-                textColor = textColor,
-                loadIcon = { notification ->
-                    viewModel.loadNotificationIcon(notification, notificationIconSizePx)
-                },
-                onNotificationClick = { notification ->
-                    context.launchNotification(notification)
-                    if (notification.isAutoCancel) {
-                        viewModel.onDismissNotification(notification.key)
-                    }
-                },
-                onDismiss = { notification -> viewModel.onDismissNotification(notification.key) },
-                onClearAll = viewModel::onClearAllNotifications,
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-            )
-        }
-
         if (state.showHomeClock || state.showScreenTimeWidget) {
             Column(
                 modifier = Modifier.padding(
@@ -188,43 +174,82 @@ fun HomeBody(
                     }
                 }
 
-                AppNameItem(
-                    modifier = Modifier.animateItem(),
-                    appName = appInfo.name,
-                    isFavourite = appInfo.isFavourite,
-                    isHidden = appInfo.isHidden,
-                    isWorkProfile = appInfo.isWorkProfile,
-                    onClick = {
-                        context.launchApp(
-                            appInfo.packageName,
-                            appInfo.className,
-                            appInfo.userHandle
-                        )
-                    },
-                    onToggleFavouriteClick = {
-                        viewModel.onToggleFavouriteAppClick(
-                            appInfo
-                        )
-                    },
-                    onRenameClick = { viewModel.onRenameAppClick(appInfo) },
-                    onToggleHideClick = { viewModel.onToggleHideClick(appInfo) },
-                    onAppInfoClick = { context.launchAppInfo(appInfo) },
-                    appsArrangement = state.appsArrangementHorizontal,
-                    textSize = textSize,
-                    onUninstallClick = { context.uninstallApp(appInfo) },
-                    showNotificationDot = appInfo.showNotificationDot,
-                    showAppIcon = state.showAppIconInHome,
-                    appIcon = appIcon,
-                    appIconSizeScale = appIconSizeScale,
-                    appIconAlignment = state.homeAppIconAlignment,
-                    verticalPadding = state.homeAppVerticalPadding.dp,
-                    bottomSheetStatusBarVisible = statusBarVisible,
-                    bottomSheetNavigationBarVisible = navigationBarVisible,
-                    useDarkBottomSheetStatusBarIcons = useDarkBottomSheetStatusBarIcons,
-                    useDarkBottomSheetNavigationBarIcons = useDarkBottomSheetNavigationBarIcons,
-                    textColor = textColor,
-                    shadow = textShadow
-                )
+                val notification = if (state.notificationPanel) {
+                    state.activeNotifications
+                        .filter { it.packageName == appInfo.packageName && it.userHandle == appInfo.userHandle }
+                        .maxByOrNull { it.postTime }
+                } else {
+                    null
+                }
+
+                if (notification != null) {
+                    NotificationAppRow(
+                        modifier = Modifier.animateItem(),
+                        notification = notification,
+                        expanded = expandedNotificationKey == notification.key,
+                        textColor = textColor,
+                        textSize = textSize,
+                        verticalPadding = state.homeAppVerticalPadding.dp,
+                        loadIcon = { viewModel.loadNotificationIcon(notification, notificationIconSizePx) },
+                        onToggleExpand = {
+                            expandedNotificationKey =
+                                if (expandedNotificationKey == notification.key) null else notification.key
+                        },
+                        onOpen = {
+                            context.launchNotification(notification)
+                            if (notification.isAutoCancel) {
+                                viewModel.onDismissNotification(notification.key)
+                            }
+                        },
+                        onMarkAsRead = {
+                            viewModel.onDismissNotification(notification.key)
+                            expandedNotificationKey = null
+                        },
+                        onSnooze = {
+                            viewModel.onSnoozeNotification(notification.key)
+                            expandedNotificationKey = null
+                        },
+                        onReply = { text -> context.sendNotificationReply(notification, text) }
+                    )
+                } else {
+                    AppNameItem(
+                        modifier = Modifier.animateItem(),
+                        appName = appInfo.name,
+                        isFavourite = appInfo.isFavourite,
+                        isHidden = appInfo.isHidden,
+                        isWorkProfile = appInfo.isWorkProfile,
+                        onClick = {
+                            context.launchApp(
+                                appInfo.packageName,
+                                appInfo.className,
+                                appInfo.userHandle
+                            )
+                        },
+                        onToggleFavouriteClick = {
+                            viewModel.onToggleFavouriteAppClick(
+                                appInfo
+                            )
+                        },
+                        onRenameClick = { viewModel.onRenameAppClick(appInfo) },
+                        onToggleHideClick = { viewModel.onToggleHideClick(appInfo) },
+                        onAppInfoClick = { context.launchAppInfo(appInfo) },
+                        appsArrangement = state.appsArrangementHorizontal,
+                        textSize = textSize,
+                        onUninstallClick = { context.uninstallApp(appInfo) },
+                        showNotificationDot = appInfo.showNotificationDot,
+                        showAppIcon = state.showAppIconInHome,
+                        appIcon = appIcon,
+                        appIconSizeScale = appIconSizeScale,
+                        appIconAlignment = state.homeAppIconAlignment,
+                        verticalPadding = state.homeAppVerticalPadding.dp,
+                        bottomSheetStatusBarVisible = statusBarVisible,
+                        bottomSheetNavigationBarVisible = navigationBarVisible,
+                        useDarkBottomSheetStatusBarIcons = useDarkBottomSheetStatusBarIcons,
+                        useDarkBottomSheetNavigationBarIcons = useDarkBottomSheetNavigationBarIcons,
+                        textColor = textColor,
+                        shadow = textShadow
+                    )
+                }
             }
 
             items(items = state.favouriteShortcuts, key = { it.id }) { shortcutInfo ->

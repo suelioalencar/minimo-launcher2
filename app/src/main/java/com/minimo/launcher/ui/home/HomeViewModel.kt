@@ -170,7 +170,8 @@ class HomeViewModel @Inject constructor(
                         text = notification.text,
                         postTime = notification.postTime,
                         isAutoCancel = notification.isAutoCancel,
-                        contentIntent = notification.contentIntent
+                        contentIntent = notification.contentIntent,
+                        replyAction = notification.replyAction
                     )
                 }
             }.collect { activeNotifications ->
@@ -319,8 +320,8 @@ class HomeViewModel @Inject constructor(
         LauncherNotificationListenerService.dismissNotification(key)
     }
 
-    fun onClearAllNotifications() {
-        LauncherNotificationListenerService.dismissAllNotifications()
+    fun onSnoozeNotification(key: String) {
+        LauncherNotificationListenerService.snoozeNotification(key, Constants.NOTIFICATION_SNOOZE_DURATION_MS)
     }
 
     private fun getCombinedAllApps(

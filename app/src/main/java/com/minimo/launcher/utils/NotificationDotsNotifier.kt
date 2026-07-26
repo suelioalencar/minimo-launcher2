@@ -1,5 +1,6 @@
 package com.minimo.launcher.utils
 
+import android.app.Notification
 import android.app.PendingIntent
 import com.minimo.launcher.data.PreferenceHelper
 import kotlinx.coroutines.flow.Flow
@@ -56,5 +57,6 @@ data class ActiveNotification(
     val title: String,
     val text: String,
     val isAutoCancel: Boolean,
-    val contentIntent: PendingIntent?
+    val contentIntent: PendingIntent?,
+    val replyAction: Notification.Action?
 )

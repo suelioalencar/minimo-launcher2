@@ -1,5 +1,6 @@
 package com.minimo.launcher.ui.entities
 
+import android.app.Notification
 import android.app.PendingIntent
 
 data class ActiveNotificationUi(
@@ -12,5 +13,6 @@ data class ActiveNotificationUi(
     val text: String,
     val postTime: Long,
     val isAutoCancel: Boolean,
-    val contentIntent: PendingIntent?
+    val contentIntent: PendingIntent?,
+    val replyAction: Notification.Action?
 )

@@ -22,6 +22,8 @@ object Constants {
 
     // A dummy package used to show "Minimo Settings" in the app drawer when "Hide App Drawer Search" toggle is on.
     const val MINIMO_SETTINGS_PACKAGE = "APP::com.minimo.launcher.settings"
+
+    const val NOTIFICATION_SNOOZE_DURATION_MS = 60 * 60 * 1000L
 }
 
 enum class HomeAppsAlignmentHorizontal {

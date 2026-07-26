@@ -102,6 +102,9 @@ class LauncherNotificationListenerService : NotificationListenerService() {
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
         val isAutoCancel = (notification.flags and Notification.FLAG_AUTO_CANCEL) != 0
+        val replyAction = notification.actions?.firstOrNull { action ->
+            action.remoteInputs?.any { it.allowFreeFormInput } == true
+        }
 
         return ActiveNotification(
             key = key,
@@ -111,7 +114,8 @@ class LauncherNotificationListenerService : NotificationListenerService() {
             title = title,
             text = text,
             isAutoCancel = isAutoCancel,
-            contentIntent = notification.contentIntent
+            contentIntent = notification.contentIntent,
+            replyAction = replyAction
         )
     }
 
@@ -126,9 +130,9 @@ class LauncherNotificationListenerService : NotificationListenerService() {
             }
         }
 
-        fun dismissAllNotifications() {
+        fun snoozeNotification(key: String, durationMs: Long) {
             try {
-                instance?.cancelAllNotifications()
+                instance?.snoozeNotification(key, durationMs)
             } catch (exception: Exception) {
                 Timber.e(exception)
             }

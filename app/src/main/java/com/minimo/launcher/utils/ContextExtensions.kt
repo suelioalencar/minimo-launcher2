@@ -2,6 +2,7 @@ package com.minimo.launcher.utils
 
 import android.app.AppOpsManager
 import android.app.PendingIntent
+import android.app.RemoteInput
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -339,6 +340,31 @@ fun Context.launchNotification(notification: ActiveNotificationUi) {
         }
     }
     launchApp(notification.packageName, notification.className, notification.userHandle)
+}
+
+fun Context.sendNotificationReply(notification: ActiveNotificationUi, text: String): Boolean {
+    val action = notification.replyAction ?: return false
+    val remoteInputs = action.remoteInputs ?: return false
+    if (text.isBlank()) return false
+
+    val results = Bundle()
+    for (remoteInput in remoteInputs) {
+        if (remoteInput.allowFreeFormInput) {
+            results.putCharSequence(remoteInput.resultKey, text)
+        }
+    }
+
+    val fillInIntent = Intent().apply {
+        RemoteInput.addResultsToIntent(remoteInputs, this, results)
+    }
+
+    return try {
+        action.actionIntent.send(this, 0, fillInIntent)
+        true
+    } catch (exception: PendingIntent.CanceledException) {
+        Timber.e(exception)
+        false
+    }
 }
 
 fun Context.showNotificationDrawer() {

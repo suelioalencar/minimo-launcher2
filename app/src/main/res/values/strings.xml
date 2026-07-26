@@ -98,9 +98,12 @@
     <string name="notification_dots">Notification Dots</string>
     <string name="display_a_notification_dot_on_the_home_screen_apps">Display a notification dot on home screen apps</string>
     <string name="notification_previews">Notification Previews</string>
-    <string name="show_notification_previews_on_the_home_screen">Show notification content on the home screen, without pulling down the system notification shade</string>
+    <string name="show_notification_previews_on_the_home_screen">Show notification content directly on the matching app\'s row on the home screen. Swipe the row to see reply, mark as read and mute actions</string>
     <string name="notification_panel_access_required_description">To show notification previews on the home screen, please allow notification access.\n\nThis allows the app to read the title and text of active notifications so it can display them here.\n\nNotification content is only processed on your device. It is never collected, stored remotely, or shared.</string>
-    <string name="clear_all_notifications">Clear all</string>
+    <string name="mark_as_read">Mark as read</string>
+    <string name="mute_notification">Mute</string>
+    <string name="reply">Reply</string>
+    <string name="collapse_notification">Collapse</string>
     <string name="home_app_spacing">Home App Spacing:</string>
     <string name="update">Update</string>
     <string name="ignore_special_characters">Ignore Special Characters</string>
